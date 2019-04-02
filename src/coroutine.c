@@ -1,6 +1,7 @@
-#include "coroutine.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "coroutine.h"
 //#
 
 // pub unsafe extern "C" fn switch(&mut self, _target: &mut Self) {
@@ -116,11 +117,22 @@
 bool schedule(struct scheduler* sched)
 {
     int i;
-    for (i = (sched->cur + 1)%sched->num; i != sched->cur; i +=1, i %= sched->num)
+    for (i = (sched->cur + 1)%sched->num; i != sched->cur; i += 1, i %= sched->num)
         if  (sched->corts[i]->state == Running)  break;
     
+    printf("schedule: %d, %d\n", i, sched->corts[i]->state);
     if  (sched->corts[i]->state == Running)  {  sched->cur = i;  return true;}
     else return false;
+}
+
+void output_context(struct context* ctx)
+{
+    printf("%rip: %x\n", ctx->rip);
+}
+
+void output_register(unsigned long reg)
+{
+    printf("%x\n", reg);
 }
 
 
@@ -129,6 +141,7 @@ bool schedule(struct scheduler* sched)
 struct scheduler* co_new()
 {
     struct scheduler* sched = malloc(sizeof(struct scheduler));
+    //sched->corts = (struct coroutine**)malloc(MAX_COROUTINES * sizeof(struct coroutine*));
     sched->cur = sched->num = 0;
 
     return sched;
@@ -141,21 +154,24 @@ void co_run(struct scheduler* sched)
     
     while (schedule(sched))
     {
+        printf("co_run: cur: %d\n", sched->cur);
 
+        output_context(sched->corts[sched->cur]->ctx);
+        printf("%x %x\n", &sched->ctx, &sched->corts[sched->cur]->ctx);
         switch_to(&sched->ctx, &sched->corts[sched->cur]->ctx);
 
     }
 
-    for (int i = 0; i < sched->num; i++)
-        free(sched->corts[i]);
-    free(sched);
+    // for (int i = 0; i < sched->num; i++)
+    //     free((void*)sched->corts[i]);
+    // free(sched);
 }
 
 bool co_add(struct scheduler* sched, co_func_t func, void* arg)
 {
     unsigned char* stack = (unsigned char*)malloc(STACK_SIZE);
     struct coroutine* co = (struct coroutine*)stack;
-    if  (sched->num > MAX_COROUTINES)  return false;
+    if  (sched->num >= MAX_COROUTINES)  return false;
     co->id = sched->num++;
     co->state = Running;
 
@@ -163,10 +179,12 @@ bool co_add(struct scheduler* sched, co_func_t func, void* arg)
     args[1] = (unsigned long)sched;
     args[2] = (unsigned long)func;
     args[3] = (unsigned long)arg;
+    printf("args: %x %x %x\n", args[1], args[2], args[3]);
 
     struct context* ctx = (struct context*)(((unsigned char*)args) - sizeof(struct context));
     memset(ctx, 0, sizeof(struct context));
     ctx->rip = (unsigned long)start_entry;
+    printf("start_entry: %x\n", start_entry);
     
     co->ctx = ctx;
     sched->corts[co->id] = co;
@@ -175,9 +193,15 @@ bool co_add(struct scheduler* sched, co_func_t func, void* arg)
 
 void co_yield(struct scheduler* sched)
 {
+    printf("co_yield\n");
     switch_to(&sched->corts[sched->cur]->ctx, &sched->ctx);
-
 }
 
 
 
+void co_exit(struct scheduler* sched)
+{
+    printf("co_exit\n");
+    sched->corts[sched->cur]->state = Finished;
+    co_yield(sched);
+}

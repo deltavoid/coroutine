@@ -2,6 +2,7 @@
 .globl switch_to
 switch_to:                      # switch_to(from, to)
     # save from's registers
+    
     # push rip (by caller)
     # Save old callee-save registers
     pushq %rbx
@@ -10,11 +11,14 @@ switch_to:                      # switch_to(from, to)
     pushq %r13
     pushq %r14
     pushq %r15
-    movq %rsp, 0(%rdi)
-
+#    movq %rsp, %rdi
+#    call output_register
+    movq %rsp, 0x0(%rdi)
+#    call output_register
 
     # restore to's registers
-    movq 0(%rsi), %rsp
+    movq 0x0(%rsi), %rsp
+#    call output_register
 
     popq %r15
     popq %r14
@@ -23,17 +27,21 @@ switch_to:                      # switch_to(from, to)
     popq %rbp
     popq %rbx
     # pop rip
+#    call output_register
     
     ret
 
 
 .globl start_entry
-start_entry:                   
-    movq 0x8(%rsp), %rax
-    movq 0xc(%rsp), %rdi
+start_entry:          
+    
+#    call output_register
+    movq 0x10(%rsp), %rax
+    movq 0x18(%rsp), %rdi
     callq *%rax
 
-    movq 0x4(%rsp), %rdi
-    call co_yield
+#    call output_register
+    movq 0x8(%rsp), %rdi
+    call co_exit
 
 

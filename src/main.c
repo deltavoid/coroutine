@@ -23,11 +23,19 @@ void func2(void* arg)
 
 int main()
 {
-    
+    printf("main: 0\n");
+
     struct scheduler* sched = co_new();
+    printf("main: 1\n");
+    
     co_add(sched, func1, sched);
+    printf("main: 2\n");
+    
     co_add(sched, func2, sched);
+    printf("main: 3\n");
+    
     co_run(sched);
+    printf("main: 4\n");
 
     return 0;
 }

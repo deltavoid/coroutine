@@ -50,5 +50,6 @@ extern struct scheduler* co_new();
 extern void co_run(struct scheduler* sched);
 extern bool co_add(struct scheduler* sched, co_func_t func, void* arg);
 extern void co_yield(struct scheduler* sched);
+extern void co_exit(struct scheduler* sched);
 
 #endif
