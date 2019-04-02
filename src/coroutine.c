@@ -120,7 +120,7 @@ bool schedule(struct scheduler* sched)
     for (i = (sched->cur + 1)%sched->num; i != sched->cur; i += 1, i %= sched->num)
         if  (sched->corts[i]->state == Running)  break;
     
-    printf("schedule: %d, %d\n", i, sched->corts[i]->state);
+    // printf("schedule: %d, %d\n", i, sched->corts[i]->state);
     if  (sched->corts[i]->state == Running)  {  sched->cur = i;  return true;}
     else return false;
 }
@@ -154,17 +154,17 @@ void co_run(struct scheduler* sched)
     
     while (schedule(sched))
     {
-        printf("co_run: cur: %d\n", sched->cur);
+        // printf("co_run: cur: %d\n", sched->cur);
 
-        output_context(sched->corts[sched->cur]->ctx);
-        printf("%x %x\n", &sched->ctx, &sched->corts[sched->cur]->ctx);
+        // output_context(sched->corts[sched->cur]->ctx);
+        // printf("%x %x\n", &sched->ctx, &sched->corts[sched->cur]->ctx);
         switch_to(&sched->ctx, &sched->corts[sched->cur]->ctx);
 
     }
 
-    // for (int i = 0; i < sched->num; i++)
-    //     free((void*)sched->corts[i]);
-    // free(sched);
+    for (int i = 0; i < sched->num; i++)
+        free(sched->corts[i]);
+    free(sched);
 }
 
 bool co_add(struct scheduler* sched, co_func_t func, void* arg)
@@ -179,12 +179,12 @@ bool co_add(struct scheduler* sched, co_func_t func, void* arg)
     args[1] = (unsigned long)sched;
     args[2] = (unsigned long)func;
     args[3] = (unsigned long)arg;
-    printf("args: %x %x %x\n", args[1], args[2], args[3]);
+    // printf("args: %x %x %x\n", args[1], args[2], args[3]);
 
     struct context* ctx = (struct context*)(((unsigned char*)args) - sizeof(struct context));
     memset(ctx, 0, sizeof(struct context));
     ctx->rip = (unsigned long)start_entry;
-    printf("start_entry: %x\n", start_entry);
+    // printf("start_entry: %x\n", start_entry);
     
     co->ctx = ctx;
     sched->corts[co->id] = co;
@@ -193,7 +193,7 @@ bool co_add(struct scheduler* sched, co_func_t func, void* arg)
 
 void co_yield(struct scheduler* sched)
 {
-    printf("co_yield\n");
+    // printf("co_yield\n");
     switch_to(&sched->corts[sched->cur]->ctx, &sched->ctx);
 }
 
@@ -201,7 +201,7 @@ void co_yield(struct scheduler* sched)
 
 void co_exit(struct scheduler* sched)
 {
-    printf("co_exit\n");
+    // printf("co_exit\n");
     sched->corts[sched->cur]->state = Finished;
     co_yield(sched);
 }
